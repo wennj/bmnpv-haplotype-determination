@@ -52,11 +52,80 @@ snp.data$id <- as.factor(snp.data$id)
 snp.data$id <- factor(snp.data$id, levels = c("in"))
 
 snp.data$SPEC <- as.factor(snp.data$SPEC)
-
+snp.data$SPEC <- factor(snp.data$SPEC, levels = c("Ja_My", "Ja", "My"))
 
 snp.data <- snp.data[order(factor(snp.data$SPEC)),]
 
 myData <- subset(snp.data, ISO == "iMy")
 jaData <- subset(snp.data, ISO == "iJa")
+```
+
+
+## Variable SNV position visualization 
+
+```{r}
+snv.plot <- function(x, col = "blue", genome.length = NULL, dotSize = 2.5, ALPHA = 0.6) {
+  # Entferne Zeilen mit NA in REL.ALT1
+  x <- x[!is.na(x$REL.ALT1), ]
+  
+  # Prüfe, ob `col` eine Spalte ist oder eine feste Farbe
+  if (!col %in% names(x)) {
+    x$color <- col  # Erstelle eine neue Spalte 'color' mit der festen Farbe
+    color_layer <- geom_point(
+      aes(x = as.numeric(POS), y = REL.ALT1),
+      color = col, alpha = ALPHA, size = dotSize
+    )  # Verwende die feste Farbe
+  } else {
+    color_layer <- geom_point(
+      aes(x = as.numeric(POS), y = REL.ALT1, color = .data[[col]]),
+      alpha = ALPHA, size = dotSize
+    )  # Verwende die existierende Spalte für das Farb-Mapping
+  }
+  
+  # Bestimme die Länge des Genoms und erstelle x-Achsen-Breaks
+  if (is.numeric(genome.length)) {
+    b <- seq(0, genome.length - 5000, by = 5000)
+    b[1] <- 1
+    b <- append(b, genome.length)
+  } else {
+    genome.length <- max(x$POS)
+    b <- seq(0, genome.length, by = 5000)
+    b[1] <- 1
+    b <- append(b, genome.length)
+  }
+  
+  # Erstelle den ggplot
+  p <- ggplot(x) +
+    theme_bw() +
+    scale_x_continuous(
+      limits = c(0, genome.length),
+      expand = c(0.01, 0),
+      breaks = b,
+      labels = floor(b / 1000)
+    ) +
+    scale_y_continuous(
+      limits = c(0, 1),
+      breaks = seq(0, 1, 0.25)
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.line = element_line(colour = "black"),
+      panel.background = element_rect(fill = "white"),
+      panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+      legend.position = "right"
+    ) +
+    color_layer +  # Füge den richtigen Layer hinzu
+    xlab("Genome position (kbp)") +
+    ylab("Relative SNV Frequency")
+  
+  return(p)
+}
+
+snv.plot(myData, col = "purple")
+snv.plot(myData, col = "SPEC")
+snv.plot(jaData, col = "purple")
+snv.plot(jaData, col = "SPEC")
 ```
 
