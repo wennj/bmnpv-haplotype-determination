@@ -1,0 +1,62 @@
+---
+title: "Haplotype Determination Workflow"
+author: "Jörg Wennmann"
+date: "2024-12-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Required libraries
+
+```{r}
+library(bacsnp)
+
+#'%ni%' <- Negate('%in%')
+```
+
+## Input the VCF file
+
+Input VCF and transform to readable dataframe using bacsnp transformation.
+
+```{r}
+data <- vcfR::read.vcfR("vcf/bmnpv_my_ja_vs_refIndia.vcf")
+df <- bacsnp.transformation(data)
+
+#Change NCBI SRR to BmNPV isolate description
+df$ISO[df$ISO == "iSRR14313721"] <- "iJa"
+df$ISO[df$ISO == "iSRR14313723"] <- "iMy"
+```
+
+## Determining SNP specificities
+
+Tool bacsnp is used to determine SNP specificities.
+
+```{r}
+iso.spec <- c("iMy", "iJa")
+df.spec <- bacsnp.specificity(df, isolates = iso.spec, which.rel = "REL.ALT1")
+
+snp.data <- df.spec$data
+
+snp.data <- snp.data[!is.na(snp.data$REL.ALT1),]
+
+snp.data$id <- "in"
+
+snp.data$ISO <- as.factor(snp.data$ISO)
+snp.data$ISO <- factor(snp.data$ISO, levels = c("iMy", "iJa"))
+
+snp.data$id <- as.factor(snp.data$id)
+snp.data$id <- factor(snp.data$id, levels = c("in"))
+
+snp.data$SPEC <- as.factor(snp.data$SPEC)
+
+
+snp.data <- snp.data[order(factor(snp.data$SPEC)),]
+
+myData <- subset(snp.data, ISO == "iMy")
+jaData <- subset(snp.data, ISO == "iJa")
+```
+
