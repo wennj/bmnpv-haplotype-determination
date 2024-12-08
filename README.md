@@ -44,18 +44,26 @@ Here are the NCBI sequence read archive (SRA) data sets that are used in this wo
 Für die SNV Bestimmungen wird eine Referenz benötigt. Diese muss nah mit den sequenzierten Isolaten verwandt sein. Da es sich bei den Proben um Isolate des BmNPV handelt, die aus Indien stammen, eignet sich die Genomsequenz des BmNPV-India:
 
 | Name | GenBank Accession no. | Length (bp) | GC (%) | Pubmed ID |
-|:--:|:--:|:--:|:--:|:--:|
+|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
 | BmNPV-India | [JQ991010](https://www.ncbi.nlm.nih.gov/nuccore/JQ991010.1) | 126879 | 40.4 | [23043173](https://pubmed.ncbi.nlm.nih.gov/23043173/) |
 
 ## Detailed R code of the workflow
 
-The here presented workflow is conducted under R programming language. Therefore, make sure that [R](https://a-little-book-of-r-for-bioinformatics.readthedocs.io/en/latest/src/installr.html) is installed and working.
+The workflow presented here is divided into several chapters. Each chapter has an accompanying code written in R programming language that makes it possible to follow the entire analysis. Since everything is written in the R, make sure that R is installed and running on your system. The scripts are written as R markdown documents that can be opened with RStudio and also read as HTML files.
 
-[A detailed script written as an R Markdown document can be found here.](/haplotype_workflow.Rmd)
+The R code is linked in the individual chapters. Here is an overview:
+
+Chapter 1: [Determination of variable single nucleotides variants (SNV) using Illumina sequencing data](chapter_1_snv_position_determination.Rmd)
+
+Chapter 2: \<tbd\>
+
+Chapter 3: \<tbd\>
+
+Chapter 4 \<tbd\>
 
 ------------------------------------------------------------------------
 
-## Part 1: Determination of variable single nucleotide variants (SNV) using Illumina sequencing data
+## Chapter 1: Determination of variable single nucleotide variants (SNV) using Illumina sequencing data
 
 In this section a standard method for determining variable SNV positions is demonstrated. There are many methods for variable SNP position determination, but the here method presented has been proven to work well for sequenced isolates of baculoviruses. It was further used for the bacsnp tool, which can be used to determin specificities of variable SNV position. The entire workflow to determine variable SNV positions
 
@@ -77,7 +85,7 @@ Below is an overview image of the workflow.
 
 ### Running the workflow
 
-To start the workflow, you should prepare the data as follows:
+To start the workflow, you should prepare the data as described below:
 
 -   Import the reference (BmNPV-India, JQ991010) into the usegalaxy.eu history in fasta format.
 
@@ -88,5 +96,52 @@ To start the workflow, you should prepare the data as follows:
 -   Start the workflow and use the dataset list as read input.. Set the fasta sequence of BmNPV-India as the reference genome.
 
 ### Workflow output
+
+The output is in Variant Call Format (VCF). As set in the workflow, only variable SNV positions across all sequenced isolates are obtained.
+
+The VCF file is further analyzed in R and RStudio using bacsnp to get an impression of the intra-isolate specific variation.
+
+### Visualizing the intra-isolate specific variation
+
+In the detected SNV position, the occuring nucleotides can be counted from the VCF file. There are four possible nucleotides: the nucleotide of the reference sequence or one of the three remaining nucleotides. Theoretically, the VCF file povides us all four nucleotides. In practice, however, there is almost always only one alternative nucleotide. Therefore, the analysis of the nucleotides in the SNV positions is usually limited to two possibilities: the reference nucleotide and the (first) alternative. As the read depth is also stored in the VCF file, we have everything we need to calculate the relative frequency of the alternative nucleotide: relative frequency = absolute frequency of the alternative nucleotide/read depth.
+
+Since the positions of the SNVs are known, the relative frequencies in the genome can be visualised (see figure below). Shown are the relative SNV frequencies of the baculovirus isolates (A) BmNPV-My and (B) BmNPV-Ja. The specificities of the SNV positions were determined using bacsnp for (C) BmNPV-My and (D) BmNPV-Ja. It can be seen that SNV positions specific for BmNPV-My (blue dots) have a frequency \> 0 only in isolate BmNPV-My. These SNV positions can be used as an indicator of whether BmNPV-My is part of BmNPV-Ja. Here, the blue dots have no frequency, indicating that BmNPV-My is not part of BmNPV-Ja. Instead, BmNPV-Ja appears to be a \~50:50 mixture of two different components. In addition, the isolates appear to be heterogeneous, as evidenced by the hundreds of SNV positions of different frequencies.
+
+Based on these observations it could be hyptothized that BmNPV-Ja consists out of two major haplotypes.
+
+![](figures/bacsnp_plot.png)
+
+### Creating a BED file of the SNV positions (important!)
+
+The next but very important step is to create a BED file. In bioinformatics, a BED file provides information about genomic positions. You can find a lot of information about BED files on the internet. The important thing to know here is that we determine the BED file for the variable SNV positions that we have previously determined. The BED file consists of three mandatory columns:
+
+1.  Chromosom: The name of the chromosome or the sequence (in this example BmNPV-India)
+2.  Start: 0-based start position
+3.  End: 1-based end positions
+
+Fortunately, the SNV data can be easily converted into BED format in R:
+
+``` r
+bed_data <- data.frame(
+  chrom = snp.data$CHROM,         # Chromosome
+  start = snp.data$POS - 1,       # 0-based start position
+  end = snp.data$POS,             # 1-based end position
+  name = snp.data$SPEC            # Optional: Name of the SNV specificity
+)
+```
+
+For the first five detected variable SNV positions 980, 1134, 1222 und 1344 the BED file should look like this:
+
+|    chrom    | start | end  | name  |
+|:-----------:|:-----:|:----:|:-----:|
+| BmNPV-India |  979  | 980  |  Ja   |
+| BmNPV-India | 1133  | 1134 |  Ja   |
+| BmNPV-India | 1221  | 1222 |  Ja   |
+| BmNPV-India | 1343  | 1344 | Ja_My |
+|     ...     |  ...  | ...  |  ...  |
+
+------------------------------------------------------------------------
+
+# Chapter 2: Transfer of SNV positions to Nanopore reads
 
 \<tbd\>

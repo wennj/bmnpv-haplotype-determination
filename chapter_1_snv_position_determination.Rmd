@@ -1,5 +1,5 @@
 ---
-title: "Haplotype Determination Workflow"
+title: "Part 1 - Variable SNV Position and Visualization"
 author: "Jörg Wennmann"
 date: "2024-12-07"
 output: html_document
@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(bacsnp)
+library(vcfR)
+library(patchwork)
 
 #'%ni%' <- Negate('%in%')
 ```
@@ -54,7 +56,7 @@ snp.data$id <- factor(snp.data$id, levels = c("in"))
 snp.data$SPEC <- as.factor(snp.data$SPEC)
 snp.data$SPEC <- factor(snp.data$SPEC, levels = c("Ja_My", "Ja", "My"))
 
-snp.data <- snp.data[order(factor(snp.data$SPEC)),]
+#snp.data <- snp.data[order(factor(snp.data$SPEC)),]
 
 myData <- subset(snp.data, ISO == "iMy")
 jaData <- subset(snp.data, ISO == "iJa")
@@ -114,7 +116,7 @@ snv.plot <- function(x, col = "blue", genome.length = NULL, dotSize = 2.5, ALPHA
       axis.line = element_line(colour = "black"),
       panel.background = element_rect(fill = "white"),
       panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
-      legend.position = "right"
+      legend.position = "bottom"
     ) +
     color_layer +  # Füge den richtigen Layer hinzu
     xlab("Genome position (kbp)") +
@@ -123,9 +125,53 @@ snv.plot <- function(x, col = "blue", genome.length = NULL, dotSize = 2.5, ALPHA
   return(p)
 }
 
-snv.plot(myData, col = "purple")
-snv.plot(myData, col = "SPEC")
-snv.plot(jaData, col = "purple")
-snv.plot(jaData, col = "SPEC")
+a <- snv.plot(myData, col = "purple")
+a <- a + labs(title = "BmNPV-My")
+b <- snv.plot(myData, col = "SPEC")
+b <- b + scale_color_discrete(name = "SNV specificities")
+c <- snv.plot(jaData, col = "purple")
+c <- c + labs(title = "BmNPV-Ja")
+d <- snv.plot(jaData, col = "SPEC")
+d <- d + scale_color_discrete(name = "SNV specificities")
+
+## combined plot with patchwork
+combined_plot <- (a | c) / (b | d) +
+  plot_annotation(title = '') +
+  plot_annotation(tag_levels = 'A')
+
+print(combined_plot)
+
+f <- 0.8
+
+w <- 15
+h <- 7
+
+ggsave("figures/bacsnp_plot.png", plot = combined_plot, width = w * f, height = h * f) 
+```
+
+# Creating a BED file from SNV positions
+
+```{r}
+bed_data <- data.frame(
+  chrom = snp.data$CHROM,         # Chromosome
+  start = snp.data$POS - 1,       # 0-based start position
+  end = snp.data$POS,             # 1-based end position
+  name = snp.data$SPEC,           # Optional: Name of the region
+  score = ".",                    # Optional: Score, here "." (no data)
+  strand = "."                    # Optional: Strand, here "." (unknown)
+)
+
+write.table(
+  bed_data,
+  file = "bed/snv_data.bed",
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = FALSE
+)
+```
+
+```{r}
+
 ```
 
