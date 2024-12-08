@@ -36,10 +36,16 @@ The data sets used in this exemplary workflow are freely available under [NCBI 
 
 Here are the NCBI sequence read archive (SRA) data sets that are used in this workflow:
 
-| Isolate  | BioSample    | NCBI SRA (Illumina) | NCBI SRA (Nanopore) |
-|----------|--------------|---------------------|---------------------|
-| BmNPV-My | SAMN18849911 | SRR14313723         | SRR26992684         |
-| BmNPV-Ja | SAMN18849913 | SRR14313721         | SRR26992682         |
+| Isolate  |  BioSample   | NCBI SRA (Illumina) | NCBI SRA (Nanopore) |
+|:--------:|:------------:|:-------------------:|:-------------------:|
+| BmNPV-My | SAMN18849911 |     SRR14313723     |     SRR26992684     |
+| BmNPV-Ja | SAMN18849913 |     SRR14313721     |     SRR26992682     |
+
+Für die SNV Bestimmungen wird eine Referenz benötigt. Diese muss nah mit den sequenzierten Isolaten verwandt sein. Da es sich bei den Proben um Isolate des BmNPV handelt, die aus Indien stammen, eignet sich die Genomsequenz des BmNPV-India:
+
+| Name | GenBank Accession no. | Length (bp) | GC (%) | Pubmed ID |
+|:--:|:--:|:--:|:--:|:--:|
+| BmNPV-India | [JQ991010](https://www.ncbi.nlm.nih.gov/nuccore/JQ991010.1) | 126879 | 40.4 | [23043173](https://pubmed.ncbi.nlm.nih.gov/23043173/) |
 
 ## Detailed R code of the workflow
 
@@ -51,6 +57,36 @@ The here presented workflow is conducted under R programming language. Therefore
 
 ## Part 1: Determination of variable single nucleotide variants (SNV) using Illumina sequencing data
 
-Dieser Abschnitt bedient sich einem Standardverfahren zur Bestimmung von variablen SNV Positionen. Di
+In this section a standard method for determining variable SNV positions is demonstrated. There are many methods for variable SNP position determination, but the here method presented has been proven to work well for sequenced isolates of baculoviruses. It was further used for the bacsnp tool, which can be used to determin specificities of variable SNV position. The entire workflow to determine variable SNV positions
+
+for sequenced baculoviruses and was also used for the bacsnp tool [<https://doi.org/10.3390/v12060625>] [<https://github.com/wennj/bacsnp>], which determines the specificity of SNV positions. The workflow for determining SNV includes the following tools:
+
+-   Trim Galore! ([Link](https://github.com/FelixKrueger/TrimGalore))
+
+-   BWA-MEM ([Link](https://github.com/galaxyproject/tools-iuc/tree/main/tools/bwa))
+
+-   mpileup ([Link](https://github.com/galaxyproject/tools-iuc/tree/main/tools/bcftools))
+
+-   bcftools ([Link](https://github.com/galaxyproject/tools-iuc/tree/main/tools/bcftools))
+
+A pre-prepared workflow for usegalaxy.eu can be downloaded here [[Link to Galaxy workflow file](https://github.com/wennj/bacsnp/blob/master/doc/Galaxy-Workflow-bacsnp_SNP_calling_workflow.ga)] or viewed directly on usegalaxy.eu [[Link workflow on usegalaxy.eu](https://usegalaxy.eu/published/workflow?id=6223333100a9e73f)].
+
+Below is an overview image of the workflow.
+
+![](https://github.com/wennj/bacsnp/blob/master/assets/galaxy_workflow_screenshot.png)
+
+### Running the workflow
+
+To start the workflow, you should prepare the data as follows:
+
+-   Import the reference (BmNPV-India, JQ991010) into the usegalaxy.eu history in fasta format.
+
+-   Import the SRR files of BmNPV-My (SRR26992684) and BmNPV-Ja (SRR26992681) into the history. Either download the NCBI SRA data sets manually from NCBI SRA and upload them to usegalaxy.eu or use the usegalaxy.eu tool *Faster Download and Extract Reads in FASTQ format from NCBI SRA* (Galaxy Version). The format should be fastq (compressed or uncompressed).
+
+-   Build a list of dataset pairs (Build List of Dataset Pairs) using the downloaded paired datasets of BmNPV-My and BmNPV-Ja.
+
+-   Start the workflow and use the dataset list as read input.. Set the fasta sequence of BmNPV-India as the reference genome.
+
+### Workflow output
 
 \<tbd\>
