@@ -44,7 +44,7 @@ Here are the NCBI sequence read archive (SRA) data sets that are used in this wo
 Für die SNV Bestimmungen wird eine Referenz benötigt. Diese muss nah mit den sequenzierten Isolaten verwandt sein. Da es sich bei den Proben um Isolate des BmNPV handelt, die aus Indien stammen, eignet sich die Genomsequenz des BmNPV-India:
 
 | Name | GenBank Accession no. | Length (bp) | GC (%) | Pubmed ID |
-|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
+|:--:|:--:|:--:|:--:|:--:|
 | BmNPV-India | [JQ991010](https://www.ncbi.nlm.nih.gov/nuccore/JQ991010.1) | 126879 | 40.4 | [23043173](https://pubmed.ncbi.nlm.nih.gov/23043173/) |
 
 ## Detailed R code of the workflow
@@ -105,9 +105,9 @@ The VCF file is further analyzed in R and RStudio using bacsnp to get an impress
 
 In the detected SNV position, the occuring nucleotides can be counted from the VCF file. There are four possible nucleotides: the nucleotide of the reference sequence or one of the three remaining nucleotides. Theoretically, the VCF file povides us all four nucleotides. In practice, however, there is almost always only one alternative nucleotide. Therefore, the analysis of the nucleotides in the SNV positions is usually limited to two possibilities: the reference nucleotide and the (first) alternative. As the read depth is also stored in the VCF file, we have everything we need to calculate the relative frequency of the alternative nucleotide: relative frequency = absolute frequency of the alternative nucleotide/read depth.
 
-Since the positions of the SNVs are known, the relative frequencies in the genome can be visualised (see figure below). Shown are the relative SNV frequencies of the baculovirus isolates (A) BmNPV-My and (B) BmNPV-Ja. The specificities of the SNV positions were determined using bacsnp for (C) BmNPV-My and (D) BmNPV-Ja. It can be seen that SNV positions specific for BmNPV-My (blue dots) have a frequency \> 0 only in isolate BmNPV-My. These SNV positions can be used as an indicator of whether BmNPV-My is part of BmNPV-Ja. Here, the blue dots have no frequency, indicating that BmNPV-My is not part of BmNPV-Ja. Instead, BmNPV-Ja appears to be a \~50:50 mixture of two different components. In addition, the isolates appear to be heterogeneous, as evidenced by the hundreds of SNV positions of different frequencies.
+Since the positions of the SNVs are known, the relative frequencies in the genome can be visualised (see figure below). Shown are the relative SNV frequencies of the baculovirus isolates (A) BmNPV-My and (B) BmNPV-Ja. The specificity of the SNV positions were determined using bacsnp for (C) BmNPV-My and (D) BmNPV-Ja. It can be seen that SNV positions specific for BmNPV-My (blue dots) have a frequency \> 0 only in isolate BmNPV-My. These SNV positions can be used as an indicator of whether BmNPV-My is part of BmNPV-Ja. Here, the blue dots have no frequency, indicating that BmNPV-My is not part of BmNPV-Ja. Instead, BmNPV-Ja appears to be a \~50:50 mixture of two different components. In addition, isolate BmNPV-Ja appears to be heterogeneous, as visible by the hundreds of SNV positions of different frequencies.
 
-Based on these observations it could be hyptothized that BmNPV-Ja consists out of two major haplotypes.
+Based on these observations it could be hypothesized that BmNPV-Ja consists out of two major haplotypes.
 
 ![](figures/bacsnp_plot.png)
 

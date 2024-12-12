@@ -1,0 +1,249 @@
+---
+title: "Part 2 - Nanopore reads"
+author: "Jörg Wennmann"
+date: "2024-12-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Required libraries
+
+```{r}
+library(data.table)
+```
+
+# VCF to Matrix transformation
+
+```{r}
+# Funktionen definieren
+split_string_to_chars <- function(input_string) {
+  strsplit(input_string, "")[[1]]
+}
+
+process_plus_minus_in_vector <- function(char_vector) {
+  i <- 1
+  processed_vector <- c()
+  
+  while (i <= length(char_vector)) {
+    if (char_vector[i] %in% c("+", "-")) {
+      if ((i + 1) <= length(char_vector) && grepl("^[0-9]+$", char_vector[i + 1])) {
+        num <- as.numeric(char_vector[i + 1])
+        i <- i + 1 + num
+      } else {
+        processed_vector <- c(processed_vector, char_vector[i])
+      }
+    } else {
+      processed_vector <- c(processed_vector, char_vector[i])
+    }
+    i <- i + 1
+  }
+  processed_vector
+}
+
+replace_asterisk_and_hash <- function(char_vector) {
+  gsub("\\*|#", "-", char_vector)
+}
+
+remove_caret_and_next <- function(char_vector) {
+  i <- 1
+  result <- c()
+  while (i <= length(char_vector)) {
+    if (char_vector[i] == "^") {
+      i <- i + 2
+    } else {
+      result <- c(result, char_vector[i])
+      i <- i + 1
+    }
+  }
+  result
+}
+
+remove_dollar_sign <- function(char_vector) {
+  char_vector[char_vector != "$"]
+}
+
+create_alignment_matrix <- function(positions, 
+                                    base_lists, 
+                                    readnames_lists, 
+                                    repeated_reads, 
+                                    remove_repeated_reads = FALSE) {
+  # Extrahiere alle einzigartigen Readnamen
+  all_readnames <- unique(unlist(readnames_lists))
+  
+  # Optional: Entferne mehrfach vorkommende Reads
+  if (remove_repeated_reads) {
+    all_readnames <- setdiff(all_readnames, repeated_reads)
+  }
+  
+  # Initialisiere die Matrix mit NAs
+  alignment_matrix <- matrix(NA, nrow = length(all_readnames), ncol = length(positions),
+                             dimnames = list(all_readnames, positions))
+  
+  # Fülle die Matrix mit den Baseninformationen
+  for (i in seq_along(positions)) {
+    position <- positions[i]
+    base_info <- base_lists[[i]]
+    readnames <- readnames_lists[[i]]
+    
+    for (j in seq_along(readnames)) {
+      if (!remove_repeated_reads || !(readnames[j] %in% repeated_reads)) {
+        alignment_matrix[readnames[j], as.character(position)] <- base_info[j]
+      }
+    }
+  }
+  # Ersetze NA-Werte durch Leerzeichen
+  alignment_matrix[is.na(alignment_matrix)] <- ""
+  
+  return(alignment_matrix)
+}
+
+adjust_matrix_with_reference <- function(matrix, refpos_df) {
+  # Iteriere über die Spaltennamen der Matrix
+  for (position in colnames(matrix)) {
+    # Konvertiere die Position in numerisches Format
+    numeric_position <- as.numeric(position)
+    
+    # Hole das Referenznukleotid für die aktuelle Position
+    ref_nucleotide <- refpos_df$REF[refpos_df$POS == numeric_position]
+    
+    # Überprüfe, ob ein gültiges Referenznukleotid gefunden wurde
+    if (length(ref_nucleotide) > 0) {
+      # Ersetze "," und "." durch das Referenznukleotid
+      matrix[, position][matrix[, position] %in% c(",", ".")] <- ref_nucleotide
+    }
+  }
+  return(matrix)
+}
+
+capitalize_bases <- function(matrix) {
+  # Iteriere über alle Zellen der Matrix
+  for (i in seq_len(nrow(matrix))) {
+    for (j in seq_len(ncol(matrix))) {
+      # Hole den aktuellen Wert
+      value <- matrix[i, j]
+      # Wenn der Wert kleinbuchstabig ist, konvertiere ihn zu Großbuchstaben
+      if (value %in% c("a", "t", "g", "c")) {
+        matrix[i, j] <- toupper(value)
+      }
+    }
+  }
+  return(matrix)
+}
+
+# Hauptprozess------------------------------------------------------------
+pileup_data <- fread("pileup/SRR26992684.pileup", sep = "\t", header = FALSE, quote = "", fill = TRUE)
+colnames(pileup_data) <- c("Chromosome", "Position", "ReferenceBase", "Coverage", "ReadBases", "Qualities", "noIdea", "ReadNames")
+
+
+positions <- pileup_data$Position
+base_lists <- list()
+readnames_lists <- list()
+duplicated_read_names <- c()
+
+for (i in seq_len(nrow(pileup_data))) {
+  # Verarbeite die Baseninformationen
+  base_string <- pileup_data$ReadBases[i]
+  char_vector <- split_string_to_chars(base_string)
+  result <- process_plus_minus_in_vector(char_vector)
+  result <- replace_asterisk_and_hash(result)
+  result <- remove_caret_and_next(result)
+  result <- remove_dollar_sign(result)
+  base_lists[[i]] <- result
+  
+  # Verarbeite die Readnamen
+  readnames <- unlist(strsplit(pileup_data$ReadNames[i], ","))
+  readnames_lists[[i]] <- readnames
+  
+  # Finde doppelte Readnamen und füge sie zum Vektor hinzu
+  readname_counts <- table(readnames)
+  repeated_reads <- names(readname_counts[readname_counts > 1])
+  if (length(repeated_reads) > 0) {
+    duplicated_read_names <- unique(c(duplicated_read_names, repeated_reads))
+  }
+}
+
+# Alignment-Matrix erstellen
+result_matrix <- create_alignment_matrix(positions, base_lists, 
+                                         readnames_lists, duplicated_read_names, 
+                                         remove_repeated_reads = TRUE)
+
+RefPos <- data.frame(REF = pileup_data$ReferenceBase, POS = pileup_data$Position)
+
+# Anwendung der Funktion
+adjusted_matrix <- adjust_matrix_with_reference(result_matrix, RefPos)
+adjusted_matrix <- capitalize_bases(adjusted_matrix)
+
+dim(adjusted_matrix)
+```
+
+# Filter homogenous allels
+
+Remove SNP positions where only one nucleotide occurs. These positions do not contirube to the analysis.
+
+```{r}
+remove_homogeneous_positions <- function(matrix) {
+  # Bestimme die Spalten (Positionen), die homogen sind
+  homogeneous_cols <- sapply(seq_len(ncol(matrix)), function(col_index) {
+    unique_values <- unique(matrix[, col_index])
+    # Entferne NA oder Leerzeichen aus den einzigartigen Werten
+    unique_values <- unique_values[!is.na(unique_values) & unique_values != " "]
+    # Prüfe, ob nur ein einzigartiger Wert übrig ist
+    length(unique_values) == 1
+  })
+  
+  # Entferne die homogenen Spalten
+  filtered_matrix <- matrix[, !homogeneous_cols, drop = FALSE]
+  
+  return(filtered_matrix)
+}
+
+filtered_matrix <- remove_homogeneous_positions(adjusted_matrix)
+
+dim(filtered_matrix)
+```
+
+# SNP coverage and at least 10% 
+
+```{r}
+filter_snv_positions_and_reads <- function(matrix) {
+  # (i) Filter für SNV-Positionen mit ≥10% Wahrscheinlichkeit für zweit häufigstes Allel
+  
+  variable_positions <- sapply(seq_len(ncol(matrix)), function(col_index) {
+    column_values <- matrix[, col_index]
+    # Entferne NA oder Leerzeichen
+    column_values <- column_values[!is.na(column_values) & column_values != " "]
+    # Häufigkeiten der Werte berechnen
+    allele_frequencies <- sort(table(column_values), decreasing = TRUE)
+    # Prüfen, ob zweit häufigstes Allel ≥10% erreicht
+    if (length(allele_frequencies) > 1) {
+      second_most_common <- allele_frequencies[2]
+      return(second_most_common / sum(allele_frequencies) >= 0.1)
+    }
+    return(FALSE)
+  })
+  
+  # Reduziere die Matrix auf variable SNV-Positionen
+  filtered_matrix <- matrix[, variable_positions, drop = FALSE]
+  
+  # (ii) Filter für Reads mit Abdeckung von mindestens 10 variablen Positionen
+  reads_with_sufficient_coverage <- rowSums(filtered_matrix != " " & !is.na(filtered_matrix)) >= 10
+  final_matrix <- filtered_matrix[reads_with_sufficient_coverage, , drop = FALSE]
+  
+  return(final_matrix)
+}
+
+final_filtered_matrix <- filter_snv_positions_and_reads(filtered_matrix) 
+
+
+dim(final_filtered_matrix)
+```
+
+
+```{r}
+write.table(adjusted_matrix, file = "snp_matrix/result_matrix.txt", sep = " ", 
+            col.names = TRUE, row.names = TRUE, quote = FALSE)
+```
+
