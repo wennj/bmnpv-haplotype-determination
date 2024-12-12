@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(data.table)
+library(ggplot2)
 ```
 
 # VCF to Matrix transformation
@@ -134,7 +135,7 @@ capitalize_bases <- function(matrix) {
 }
 
 # Hauptprozess------------------------------------------------------------
-pileup_data <- fread("pileup/SRR26992684.pileup", sep = "\t", header = FALSE, quote = "", fill = TRUE)
+pileup_data <- fread("pileup/SRR26992682.pileup", sep = "\t", header = FALSE, quote = "", fill = TRUE)
 colnames(pileup_data) <- c("Chromosome", "Position", "ReferenceBase", "Coverage", "ReadBases", "Qualities", "noIdea", "ReadNames")
 
 
@@ -179,67 +180,88 @@ adjusted_matrix <- capitalize_bases(adjusted_matrix)
 dim(adjusted_matrix)
 ```
 
-# Filter homogenous allels
-
-Remove SNP positions where only one nucleotide occurs. These positions do not contirube to the analysis.
+# Filter by covered SNP positions
 
 ```{r}
-remove_homogeneous_positions <- function(matrix) {
-  # Bestimme die Spalten (Positionen), die homogen sind
-  homogeneous_cols <- sapply(seq_len(ncol(matrix)), function(col_index) {
-    unique_values <- unique(matrix[, col_index])
-    # Entferne NA oder Leerzeichen aus den einzigartigen Werten
-    unique_values <- unique_values[!is.na(unique_values) & unique_values != " "]
-    # Prüfe, ob nur ein einzigartiger Wert übrig ist
-    length(unique_values) == 1
-  })
-  
-  # Entferne die homogenen Spalten
-  filtered_matrix <- matrix[, !homogeneous_cols, drop = FALSE]
-  
-  return(filtered_matrix)
+# Funktion zum Zählen leerer Felder
+fun_empty <- function(x) {
+  sum(x == "" | is.na(x))  # Berücksichtigt leere Werte und NA
 }
 
-filtered_matrix <- remove_homogeneous_positions(adjusted_matrix)
+# Funktion zum Zählen von Nicht-Leerwerten
+fun_not_empty <- function(x) {
+  sum(x != "" & !is.na(x))  # Zählt alle Werte, die nicht leer oder NA sind
+}
 
-dim(filtered_matrix)
+# Anwenden der Funktionen auf die Zeilen der Matrix
+empty <- apply(adjusted_matrix, 1, fun_empty)
+not_empty <- apply(adjusted_matrix, 1, fun_not_empty)
+#Reads with more than 10 SNPs
+positionsCovered <- notEmpty-empty
+seqsFiltered1 <- adjusted_matrix[which(positionsCovered >= 10), ]
 ```
 
-# SNP coverage and at least 10% 
+# Filter by second allel frequency
 
 ```{r}
-filter_snv_positions_and_reads <- function(matrix) {
-  # (i) Filter für SNV-Positionen mit ≥10% Wahrscheinlichkeit für zweit häufigstes Allel
-  
-  variable_positions <- sapply(seq_len(ncol(matrix)), function(col_index) {
-    column_values <- matrix[, col_index]
-    # Entferne NA oder Leerzeichen
-    column_values <- column_values[!is.na(column_values) & column_values != " "]
-    # Häufigkeiten der Werte berechnen
-    allele_frequencies <- sort(table(column_values), decreasing = TRUE)
-    # Prüfen, ob zweit häufigstes Allel ≥10% erreicht
-    if (length(allele_frequencies) > 1) {
-      second_most_common <- allele_frequencies[2]
-      return(second_most_common / sum(allele_frequencies) >= 0.1)
-    }
-    return(FALSE)
-  })
-  
-  # Reduziere die Matrix auf variable SNV-Positionen
-  filtered_matrix <- matrix[, variable_positions, drop = FALSE]
-  
-  # (ii) Filter für Reads mit Abdeckung von mindestens 10 variablen Positionen
-  reads_with_sufficient_coverage <- rowSums(filtered_matrix != " " & !is.na(filtered_matrix)) >= 10
-  final_matrix <- filtered_matrix[reads_with_sufficient_coverage, , drop = FALSE]
-  
-  return(final_matrix)
+getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
+	t(apply(seqs,2,function(nuc) {
+		idx=which(nuc!="")
+		t=table(nuc[idx])
+		d=t[sym]
+		d[which(is.na(d))]=0
+		names(d)=sym;
+		return(d/sum(t))
+	} ))
 }
 
-final_filtered_matrix <- filter_snv_positions_and_reads(filtered_matrix) 
+pwm <- getPWM(seqsFiltered1)
 
+pwm <- t(apply(pwm, 1, sort, decreasing = TRUE))
 
-dim(final_filtered_matrix)
+seqsFiltered2 <- seqsFiltered1[, which(pwm[, 2] >= 0.1)]
+
+head(pwm)
 ```
+
+
+```{r}
+p <- ggplot() + 
+  
+  geom_vline(xintercept = 0, linetype='dashed', color='grey') +
+  geom_vline(xintercept = 1, linetype='dashed', color='grey') +
+  #geom_vline(xintercept = tt, linetype='dashed', color='grey') +
+  geom_hline(yintercept = 0, linetype='dashed', color='grey') +
+  geom_hline(yintercept = 1, linetype='dashed', color='grey') +
+  #geom_hline(yintercept = ecdf_values, linetype='dashed', color='grey') +
+  
+  
+  stat_ecdf(aes(pwm[,4]), col="blue") +
+  stat_ecdf(aes(pwm[,3]), col="green") +
+  stat_ecdf(aes(pwm[,2]), col="red") +
+  stat_ecdf(aes(pwm[,1]), col="black") +
+
+  
+  
+  theme(axis.text.x = element_text(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          panel.background = element_rect(fill = "white"),
+          panel.border = element_rect(colour = "black", fill= NA, linewidth = 1),
+          legend.position = "none"
+    ) +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  ) +
+  xlab("Relative nucleotide frequency") +
+  #y = relative cumulative frequency of SNP positions
+  ylab("% of SNV positions")
+
+print(p)
+```
+
 
 
 ```{r}
