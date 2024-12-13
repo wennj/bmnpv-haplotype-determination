@@ -14,13 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(data.table)
 library(ggplot2)
+library(patchwork)
 ```
 
 # Function for VCF to Matrix transformation
 
 ```{r}
 process_vcf_to_snp_matrix <- function(vcf_file_path) {
-  # Hilfsfunktionen definieren
+
   split_string_to_chars <- function(input_string) {
     strsplit(input_string, "")[[1]]
   }
@@ -153,8 +154,9 @@ process_vcf_to_snp_matrix <- function(vcf_file_path) {
 }
 ```
 
+## --------
 
-# Generating SNP matrix
+## Generating SNP matrix
 
 ```{r}
 # Funktion definieren, um SNP-Matrix zu erstellen, zu speichern und zurückzugeben
@@ -182,12 +184,110 @@ process_and_save_snp_matrices <- function(file_paths) {
 # Aufruf der Funktion für mehrere Dateien
 file_paths <- c("pileup/SRR26992682.pileup", "pileup/SRR26992684.pileup")
 snp_matrices <- process_and_save_snp_matrices(file_paths)
-
-# Zugriff auf die Matrices
-# z. B. snp_matrices[["SRR26992682"]]
 ```
 
-# Filter by covered SNP positions
+
+## --------
+
+## Position Weight Matrix 
+
+```{r}
+getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
+	t(apply(seqs, 2, function(nuc) {
+		idx=which(nuc!="")
+		t=table(nuc[idx])
+		d=t[sym]
+		d[which(is.na(d))] = 0
+		names(d)=sym;
+		return(d/sum(t))
+	} ))
+}
+
+pwm_list <- list()
+
+pwm_list <- list()
+for (i in seq_along(snp_matrices)) {
+  seqs <- snp_matrices[[i]]
+  
+  pwm <- getPWM(seqs)
+  pwm_list[[names(snp_matrices)[i]]] <- pwm
+}
+
+head(pwm_list[["SRR26992684"]])
+#head(pwm_list[["SRR26992682"]])
+```
+### PWM frequency sorted
+
+```{r}
+# Schritt 2: PWMs sortieren und in separater Liste speichern
+pwm_list_sorted <- list()
+for (i in seq_along(pwm_list)) {
+  pwm <- pwm_list[[i]]
+  pwm_sorted <- t(apply(pwm, 1, sort, decreasing = TRUE))
+  pwm_list_sorted[[names(pwm_list)[i]]] <- pwm_sorted
+}
+
+#head(pwm_list_sorted[["SRR26992684"]])
+head(pwm_list_sorted[["SRR26992684"]])
+```
+
+## Empirical cumulative distribution function (ECDF)
+
+```{r}
+ecdf_plot <- function(pwm){
+  
+  p <- ggplot() + 
+    geom_vline(xintercept = 0, linetype='dashed', color='grey') +
+    geom_vline(xintercept = 1, linetype='dashed', color='grey') +
+    geom_hline(yintercept = 0, linetype='dashed', color='grey') +
+    geom_hline(yintercept = 1, linetype='dashed', color='grey') +
+    stat_ecdf(aes(pwm[,4]), col="blue") +
+    stat_ecdf(aes(pwm[,3]), col="green") +
+    stat_ecdf(aes(pwm[,2]), col="red") +
+    stat_ecdf(aes(pwm[,1]), col="black") +
+    theme(
+      axis.text.x = element_text(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.line = element_line(colour = "black"),
+      panel.background = element_rect(fill = "white"),
+      panel.border = element_rect(colour = "black", fill= NA, linewidth = 1),
+      legend.position = "none"
+    ) +
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank()
+    ) +
+    xlab("Relative nucleotide frequency") +
+    ylab("% of SNV positions")
+  
+  return(p)
+}
+
+
+p1 <- ecdf_plot(pwm_list_sorted[["SRR26992684"]])
+p2 <- ecdf_plot(pwm_list_sorted[["SRR26992682"]])
+
+## combined plot with patchwork
+combined_plot <- (p1 | p2) +
+  plot_annotation(title = '') +
+  plot_annotation(tag_levels = 'A')
+
+print(combined_plot)
+
+f <- 1
+
+w <- 7
+h <- 3.5
+
+ggsave("figures/ecdf.png", plot = combined_plot, width = w * f, height = h * f)
+```
+
+## --------
+
+## Filter reads by covered SNP positions
+
+A read should have at least 10 SNP positions.
 
 ```{r}
 # Funktion zum Zählen leerer Felder
@@ -202,13 +302,15 @@ fun_not_empty <- function(x) {
 
 # Anwenden der Funktionen auf die Zeilen der Matrix
 empty <- apply(adjusted_matrix, 1, fun_empty)
-not_empty <- apply(adjusted_matrix, 1, fun_not_empty)
+notEmpty <- apply(adjusted_matrix, 1, fun_not_empty)
 #Reads with more than 10 SNPs
 positionsCovered <- notEmpty-empty
 seqsFiltered1 <- adjusted_matrix[which(positionsCovered >= 10), ]
 ```
 
-# Filter by second allel frequency
+
+
+## Filter by second allel frequency
 
 ```{r}
 getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
@@ -216,7 +318,7 @@ getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
 		idx=which(nuc!="")
 		t=table(nuc[idx])
 		d=t[sym]
-		d[which(is.na(d))]=0
+		d[which(is.na(d))]= 0
 		names(d)=sym;
 		return(d/sum(t))
 	} ))
@@ -232,44 +334,8 @@ head(pwm)
 ```
 
 
-```{r}
-p <- ggplot() + 
-  
-  geom_vline(xintercept = 0, linetype='dashed', color='grey') +
-  geom_vline(xintercept = 1, linetype='dashed', color='grey') +
-  geom_hline(yintercept = 0, linetype='dashed', color='grey') +
-  geom_hline(yintercept = 1, linetype='dashed', color='grey') +
-  
-  stat_ecdf(aes(pwm[,4]), col="blue") +
-  stat_ecdf(aes(pwm[,3]), col="green") +
-  stat_ecdf(aes(pwm[,2]), col="red") +
-  stat_ecdf(aes(pwm[,1]), col="black") +
-
-  
-  
-  theme(axis.text.x = element_text(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          panel.background = element_rect(fill = "white"),
-          panel.border = element_rect(colour = "black", fill= NA, linewidth = 1),
-          legend.position = "none"
-    ) +
-  theme(
-    strip.background = element_blank(),
-    strip.text.x = element_blank()
-  ) +
-  xlab("Relative nucleotide frequency") +
-  #y = relative cumulative frequency of SNP positions
-  ylab("% of SNV positions")
-
-print(p)
-```
 
 
 
-```{r}
-write.table(adjusted_matrix, file = "snp_matrix/result_matrix.txt", sep = " ", 
-            col.names = TRUE, row.names = TRUE, quote = FALSE)
-```
+
 
