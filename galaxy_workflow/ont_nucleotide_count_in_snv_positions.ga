@@ -1,0 +1,225 @@
+{
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow is necessary to detect determine haplotypes large dsDNA viruses that were both Illumina and Nanopore sequenced. ",
+    "comments": [],
+    "creator": [
+        {
+            "class": "Organization",
+            "name": "J\u00f6rg T. Wennmann",
+            "url": "https://github.com/wennj/bmnpv-haplotype-determination"
+        }
+    ],
+    "format-version": "0.1",
+    "license": "CC-BY-4.0",
+    "name": "Pileup to count nucleotides in SNV positions",
+    "report": {
+        "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+        "0": {
+            "annotation": "A reference genome in FASTA format.",
+            "content_id": null,
+            "errors": null,
+            "id": 0,
+            "input_connections": {},
+            "inputs": [
+                {
+                    "description": "A reference genome in FASTA format.",
+                    "name": "Reference genome"
+                }
+            ],
+            "label": "Reference genome",
+            "name": "Input dataset",
+            "outputs": [],
+            "position": {
+                "left": 0,
+                "top": 47.29279338207505
+            },
+            "tool_id": null,
+            "tool_state": "{\"optional\": false, \"tag\": null}",
+            "tool_version": null,
+            "type": "data_input",
+            "uuid": "b4ae020d-d3bb-4cb8-904a-eaa8f002c2cb",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "1": {
+            "annotation": "ONT reads in fastq or fastq.gz format.",
+            "content_id": null,
+            "errors": null,
+            "id": 1,
+            "input_connections": {},
+            "inputs": [
+                {
+                    "description": "ONT reads in fastq or fastq.gz format.",
+                    "name": "Nanopore reads"
+                }
+            ],
+            "label": "Nanopore reads",
+            "name": "Input dataset",
+            "outputs": [],
+            "position": {
+                "left": 90.34160010134765,
+                "top": 169.7573064184659
+            },
+            "tool_id": null,
+            "tool_state": "{\"optional\": false, \"tag\": null}",
+            "tool_version": null,
+            "type": "data_input",
+            "uuid": "8fb58c1a-e7d4-4651-9221-044d07fc7045",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "2": {
+            "annotation": "BED file containing single nucleotide variant (SNV) positions in which the nucleotides are counted. SNV positions were detected from Illumina data.",
+            "content_id": null,
+            "errors": null,
+            "id": 2,
+            "input_connections": {},
+            "inputs": [
+                {
+                    "description": "BED file containing single nucleotide variant (SNV) positions in which the nucleotides are counted. SNV positions were detected from Illumina data.",
+                    "name": "BED file"
+                }
+            ],
+            "label": "BED file",
+            "name": "Input dataset",
+            "outputs": [],
+            "position": {
+                "left": 29,
+                "top": 296.4291611799266
+            },
+            "tool_id": null,
+            "tool_state": "{\"optional\": false, \"tag\": null}",
+            "tool_version": null,
+            "type": "data_input",
+            "uuid": "a348103b-7688-49df-9882-bfc7743cd3e1",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "3": {
+            "annotation": "Reads are mapped against the reference genome to count nucleotides in previously detected SNV positions.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy0",
+            "errors": null,
+            "id": 3,
+            "input_connections": {
+                "fastq_input|fastq_input1": {
+                    "id": 1,
+                    "output_name": "output"
+                },
+                "reference_source|ref_file": {
+                    "id": 0,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [
+                {
+                    "description": "runtime parameter for tool Map with minimap2",
+                    "name": "fastq_input"
+                },
+                {
+                    "description": "runtime parameter for tool Map with minimap2",
+                    "name": "reference_source"
+                }
+            ],
+            "label": "minimap2 of reads against reference genome",
+            "name": "Map with minimap2",
+            "outputs": [
+                {
+                    "name": "alignment_output",
+                    "type": "bam"
+                }
+            ],
+            "position": {
+                "left": 417.62014613707305,
+                "top": 0.0
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy0",
+            "tool_shed_repository": {
+                "changeset_revision": "5cc34c3f440d",
+                "name": "minimap2",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"alignment_options\": {\"splicing\": {\"splice_mode\": \"preset\", \"__current_case__\": 0}, \"A\": null, \"B\": null, \"O\": null, \"O2\": null, \"E\": null, \"E2\": null, \"z\": null, \"z2\": null, \"s\": null, \"no_end_flt\": true}, \"fastq_input\": {\"fastq_input_selector\": \"single\", \"__current_case__\": 0, \"fastq_input1\": {\"__class__\": \"RuntimeValue\"}, \"analysis_type_selector\": \"map-ont\"}, \"indexing_options\": {\"H\": false, \"k\": null, \"w\": null, \"I\": null}, \"io_options\": {\"output_format\": \"BAM\", \"Q\": false, \"L\": false, \"K\": null, \"cs\": null, \"c\": false, \"eqx\": false, \"Y\": false}, \"mapping_options\": {\"N\": null, \"F\": null, \"f\": null, \"kmer_ocurrence_interval\": {\"interval\": \"\", \"__current_case__\": 1}, \"min_occ_floor\": null, \"q_occ_frac\": \"0.01\", \"g\": null, \"r\": null, \"n\": null, \"m\": null, \"max_chain_skip\": null, \"max_chain_iter\": null, \"X\": false, \"p\": null, \"mask_len\": null}, \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"ref_file\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "2.28+galaxy0",
+            "type": "tool",
+            "uuid": "975ca1b8-c2e0-4bad-ba2f-0f68df56c8a8",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "4": {
+            "annotation": "This step generates the output in pileup format, an eight column table.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_mpileup/samtools_mpileup/2.1.7",
+            "errors": null,
+            "id": 4,
+            "input_connections": {
+                "addref_cond|ref": {
+                    "id": 0,
+                    "output_name": "output"
+                },
+                "advanced_options|limit_by_region|bed_regions": {
+                    "id": 2,
+                    "output_name": "output"
+                },
+                "input": {
+                    "id": 3,
+                    "output_name": "alignment_output"
+                }
+            },
+            "inputs": [
+                {
+                    "description": "runtime parameter for tool Samtools mpileup",
+                    "name": "addref_cond"
+                },
+                {
+                    "description": "runtime parameter for tool Samtools mpileup",
+                    "name": "input"
+                }
+            ],
+            "label": "Counting nucleotides in SNV positions",
+            "name": "Samtools mpileup",
+            "outputs": [
+                {
+                    "name": "output_file_pu",
+                    "type": "pileup"
+                }
+            ],
+            "position": {
+                "left": 651.0950800934489,
+                "top": 290.3041595818133
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_mpileup/samtools_mpileup/2.1.7",
+            "tool_shed_repository": {
+                "changeset_revision": "b61f5d6a7f25",
+                "name": "samtools_mpileup",
+                "owner": "devteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"__input_ext\": \"input\", \"addref_cond\": {\"addref_select\": \"history\", \"__current_case__\": 0, \"ref\": {\"__class__\": \"ConnectedValue\"}}, \"advanced_options\": {\"advanced_options_selector\": \"advanced\", \"__current_case__\": 1, \"filter_by_flags\": {\"filter_flags\": \"nofilter\", \"__current_case__\": 1}, \"limit_by_region\": {\"limit_by_regions\": \"limit\", \"__current_case__\": 0, \"bed_regions\": {\"__class__\": \"ConnectedValue\"}, \"region_paste\": \"BmNPV_India:0-126879\"}, \"exclude_read_group\": {\"exclude_read_groups\": \"no_limit\", \"__current_case__\": 2}, \"ignore_overlaps\": false, \"skip_anomalous_read_pairs\": false, \"disable_probabilistic_realignment\": false, \"coefficient_for_downgrading\": \"0\", \"max_reads_per_bam\": \"1000000\", \"extended_BAQ_computation\": false, \"minimum_mapping_quality\": \"0\", \"minimum_base_quality\": \"1\", \"qualities_illumina_onethree\": false}, \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"input\": {\"__class__\": \"RuntimeValue\"}, \"output_options_cond\": {\"output_options_selector\": \"advanced\", \"__current_case__\": 1, \"base_position_on_reads\": true, \"output_mapping_quality\": false, \"output_read_names\": true, \"output_all_pos\": \"-aa\", \"output_tags\": null}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "2.1.7",
+            "type": "tool",
+            "uuid": "56a582f8-e036-4b32-bb0c-73890901880f",
+            "when": null,
+            "workflow_outputs": [
+                {
+                    "label": "output_file_pu",
+                    "output_name": "output_file_pu",
+                    "uuid": "5b576709-75ef-4db6-b10c-f0e1e2f4db62"
+                }
+            ]
+        }
+    },
+    "tags": [
+        "name:bacsnp",
+        "name:baculoviridae",
+        "name:nudivirudae",
+        "name:naldv",
+        "name:haplotype",
+        "name:genotype"
+    ],
+    "uuid": "7c4b981b-a4aa-40e4-89af-c3c1bc9e2dcd",
+    "version": 4
+}

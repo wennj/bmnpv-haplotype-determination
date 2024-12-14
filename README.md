@@ -1,4 +1,4 @@
-# A workflow for linking Nanopore reads using single nucleotide variants (SNV) to reconstruct genomic haplotypes
+# A workflow for linking Nanopore reads using single nucleotide variants (SNV) to reconstruct genomic haplotypes of large dsDNA viruses
 
 The figures and content in this repository are derived from the following publication:
 
@@ -17,6 +17,10 @@ Virus isolates can contain many different haplotypes, which can have different b
 ## Aim of this repository
 
 This repository aims to demonstrate the workflow for determining the haplotypes of a population of baculoviruses using Illumina and Nanopore data sets. The prerequisite is that both sequencing data sets originate from the same DNA. At first, the variable SNV positions are determined from the Illumina data, as these have a very low probability of error, using a reference genome. The obtained information on the on the SNV positions is then transferred to the Nanopore reads, as these are considerably longer and can include several SNV positions. Due to the read's length, SNV linkage allows the assignment of the Nanopore reads to components, for which machine learning is used. All these steps should show how sequence data can be divided into components that represent main haplotypes.
+
+## Prerequisites
+
+To apply the workflow described below, it is necessary that the [same]{.underline} DNA has been sequenced twice using Illumina (short read) and Nanopore (long read) sequencing.
 
 ## Further reading
 
@@ -55,7 +59,7 @@ The R code is linked in the individual chapters. Here is an overview:
 
 Chapter 1: [Determination of variable single nucleotides variants (SNV) using Illumina sequencing data](chapter_1_snv_position_determination.Rmd)
 
-Chapter 2: \<tbd\>
+Chapter 2: [Transfer of SNV positions to Nanopore reads](chapter_1_snv_position_determination.Rmd)
 
 Chapter 3: \<tbd\>
 
@@ -105,7 +109,7 @@ The VCF file is further analyzed in R and RStudio using bacsnp to get an impress
 
 In the detected SNV position, the occuring nucleotides can be counted from the VCF file. There are four possible nucleotides: the nucleotide of the reference sequence or one of the three remaining nucleotides. Theoretically, the VCF file povides us all four nucleotides. In practice, however, there is almost always only one alternative nucleotide. Therefore, the analysis of the nucleotides in the SNV positions is usually limited to two possibilities: the reference nucleotide and the (first) alternative. As the read depth is also stored in the VCF file, we have everything we need to calculate the relative frequency of the alternative nucleotide: relative frequency = absolute frequency of the alternative nucleotide/read depth.
 
-Since the positions of the SNVs are known, the relative frequencies in the genome can be visualised (see figure below). Shown are the relative SNV frequencies of the baculovirus isolates (A) BmNPV-My and (B) BmNPV-Ja. The specificity of the SNV positions were determined using bacsnp for (C) BmNPV-My and (D) BmNPV-Ja. It can be seen that SNV positions specific for BmNPV-My (blue dots) have a frequency \> 0 only in isolate BmNPV-My. These SNV positions can be used as an indicator of whether BmNPV-My is part of BmNPV-Ja. Here, the blue dots have no frequency, indicating that BmNPV-My is not part of BmNPV-Ja. Instead, BmNPV-Ja appears to be a \~50:50 mixture of two different components. In addition, isolate BmNPV-Ja appears to be heterogeneous, as visible by the hundreds of SNV positions of different frequencies.
+Since the positions of the SNVs are known, the relative frequencies in the genome can be visualised (see figure below). Shown are the relative SNV frequencies of the baculovirus isolates (A) BmNPV-My and (B) BmNPV-Ja. The specificity of the SNV positions were determined using [bacsnp](https://github.com/wennj/bacsnp) for (C) BmNPV-My and (D) BmNPV-Ja. It can be seen that SNV positions specific for BmNPV-My (blue dots) have a frequency \> 0 only in isolate BmNPV-My. These SNV positions can be used as an indicator of whether BmNPV-My is part of BmNPV-Ja. Here, the blue dots have no frequency, indicating that BmNPV-My is not part of BmNPV-Ja. Instead, BmNPV-Ja appears to be a \~50:50 mixture of two different components. In addition, isolate BmNPV-Ja appears to be heterogeneous, as visible by the hundreds of SNV positions of different frequencies.
 
 Based on these observations it could be hypothesized that BmNPV-Ja consists out of two major haplotypes.
 
@@ -143,5 +147,46 @@ For the first five detected variable SNV positions 980, 1134, 1222 und 1344 the 
 ------------------------------------------------------------------------
 
 # Chapter 2: Transfer of SNV positions to Nanopore reads
+
+To conclude this chapter, it is important that the samples are sequenced twice, once using Illumina and once using Nanopore (long read) technology. While the Illumina data was used to determine the variable SNV positions, the Nanopore reads are used to link them (SNV linkage).
+
+For the linkage, we proceed similarly to Chapter 1 and first create a mapping of the reads against the same reference (BmNPV-India, JQ991010). Then we use the SNV positions stored in the BED file to count the nucleotides in the SNV positions in the mapping.
+
+The following data is required:
+
+-   Nanopore reads of BmNPV-My (SRR26992684) and BmNPV-Ja (SRR26992682)
+
+-   Reference genome: BmNPV-India (JQ991010)
+
+-   BED file with SNV positions created in chapter 1 [[Link to file](/bed/snv_data.bed)]
+
+## Galaxy workflow for processing Nanopore reads
+
+The idea of this workflow is that the Nanopore reads from the same sample as the Illumina reads are mapped against the same reference. It is important that mapping is performed separately for each Nanopore data set. This repeats the mapping with the Nanopore reads, but this time the de novo determination of the SNV positions is omitted. Instead, only the nucleotides are counted in the variable SNV positions based on the BED file from Chapter 1. The workflow includes the following tools:
+
+-   minimap2 [[Link](https://github.com/lh3/minimap2)]
+
+-   samtools mpileup [[Link](https://github.com/samtools/)]
+
+All detailed parameters can be found in the workflow. Either the workflow can be executed directly on [usegalaxy.eu](https://usegalaxy.eu/published/workflow?id=56d1f85b0b58ed27) or it can be viewed and downloaded [here](/galaxy_workflow/ont_nucleotide_count_in_snv_positions.ga).
+
+![](galaxy_workflow/ont_nt_count_workflow.png){width="75%"}
+
+## Output of the nucleotide count workflow
+
+The workflow generates an output in the pileup format (e.g. SRR26992684.pileup). [The pileup files generated for BmNPV by this workflow can be found here.](pileup) The pileup format used here is a tab-separated table with eight columns:
+
+1.  **Sequence Identifier**: Name of the reference sequence to which the reads are aligned (here BmNPV_India).
+2.  **Position in Sequence**: Genomic coordinate of the variable position (SNV position) where data is recorded.
+3.  **Reference Nucleotide**: Nucleotide at the given position in the reference sequence.
+4.  **Coverage**: Number of aligned reads at this position.
+5.  **Read Nucleotide**: Nucleotides observed at this position from the aligned reads.
+6.  **Quality**: Phred quality scores of the nucleotides, encoded in ASCII characters with a -33 offset.
+7.  \<tbd\>
+8.  R**ead Name**: Identifiers of the aligned reads contributing to this position.
+
+The columns with the reference and read nucleotide as well as the read name are particularly important. Based on this pileup format, it can now be determined which read carries which nucleotide in which position. We will address this in the next step.
+
+## Pileup to matrix tranformation
 
 \<tbd\>
