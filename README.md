@@ -67,7 +67,7 @@ Chapter 4 \<tbd\>
 
 ------------------------------------------------------------------------
 
-## Chapter 1: Determination of variable single nucleotide variants (SNV) using Illumina sequencing data
+# Chapter 1: Determination of variable single nucleotide variants (SNV) using Illumina sequencing data
 
 In this section a standard method for determining variable SNV positions is demonstrated. There are many methods for variable SNP position determination, but the here method presented has been proven to work well for sequenced isolates of baculoviruses. It was further used for the bacsnp tool, which can be used to determin specificities of variable SNV position. The entire workflow to determine variable SNV positions
 
@@ -176,10 +176,10 @@ All detailed parameters can be found in the workflow. Either the workflow can be
 
 The workflow generates an output in the pileup format (e.g. SRR26992684.pileup). [The pileup files generated for BmNPV by this workflow can be found here.](pileup) The pileup format used here is a tab-separated table with eight columns:
 
-1.  **Sequence Identifier**: Name of the reference sequence to which the reads are aligned (here BmNPV_India).
+1.  **Sequence Identifier/Chromosome**: Name of the reference sequence to which the reads are aligned (here BmNPV_India).
 2.  **Position in Sequence**: Genomic coordinate of the variable position (SNV position) where data is recorded.
 3.  **Reference Nucleotide**: Nucleotide at the given position in the reference sequence.
-4.  **Coverage**: Number of aligned reads at this position.
+4.  **Coverage/Read count**: Number of aligned reads at this position.
 5.  **Read Nucleotide**: Nucleotides observed at this position from the aligned reads.
 6.  **Quality**: Phred quality scores of the nucleotides, encoded in ASCII characters with a -33 offset.
 7.  \<tbd\>
@@ -187,6 +187,37 @@ The workflow generates an output in the pileup format (e.g. SRR26992684.pileup).
 
 The columns with the reference and read nucleotide as well as the read name are particularly important. Based on this pileup format, it can now be determined which read carries which nucleotide in which position. We will address this in the next step.
 
+Here is an example of the first two SNV positions of the pileup file of the Nanopore data set SRR26992682:
+
+| Reference | Position | Reference Nucleotide | Read Count | Read Nucleotide | Quality | \<tbd\> | Read Name\* |
+|----|----|----|----|----|----|----|----|
+| BmNPV_India | 980 | C | 492 | .T... | ;\<\<;9 | 976,974,966,975,970 | ReadName1, ReadName2 |
+| BmNPV_India | 1134 | A | 508 | .G... | 5+A5; | 1127,1128,1119,1116,1126 | ReadName2, ReadName3 |
+
+ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
+
+ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1
+
+ReadName3 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
+
 ## Pileup to matrix tranformation
 
-\<tbd\>
+In this section, it is explained how the Pileup format is tranformed to a matrix because it is not only more intiuitive to understadnt but also serves as input for the next SNV linkage step. Please make sure that the pileup file is in the correct format - check the previous section, including the workflow parameters, if necessary.
+
+If we take the eight-column table of the pileup file as an example (see previous section), the transformation matrix looks will look like like this:
+
+| ReadName | Position 980 | Position 1134 |
+|----|----|----|
+| ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1 | C |  |
+| ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1 | T | A |
+| ReadName3 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1 |  | G |
+
+A matrix is not only more intuitive to understand but also serves to link the SNV positions as input. Make sure that the pileup file is in the correct format. To do this, look at the previous section and the workflow with all the parameters. If the file is formatted correctly, there are two ways to convert the information into a matrix:
+
+-   [Nutze den R Code, der diesem Kapitel beiliegt.](chapter_2_nanopore_reads.Rmd)
+
+-   [Verwendete das Tools pileupReformater.](https://github.com/wennj/pileupReformater)
+
+The matrix shows which nucleotide is covered by which read. Since the Nanopore reads are long reads, multiple SNV positions can be linked. When we have a closer look at the second read (ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1) we see that it covers both positions 980 and 1134 and thus links the nucleotides ‘T’ and ‘A’.
+
+## Basic SNV statistics
