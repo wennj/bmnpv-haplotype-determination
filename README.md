@@ -194,11 +194,11 @@ Here is an example of the first two SNV positions of the pileup file of the Nano
 | BmNPV_India | 980 | C | 492 | .T... | ;\<\<;9 | 976,974,966,975,970 | ReadName1, ReadName2 |
 | BmNPV_India | 1134 | A | 508 | .G... | 5+A5; | 1127,1128,1119,1116,1126 | ReadName2, ReadName3 |
 
-ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
+\*ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
 
-ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1
+\*ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1
 
-ReadName3 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
+\*ReadName3 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
 
 ## Pileup to matrix tranformation
 
@@ -207,17 +207,19 @@ In this section, it is explained how the Pileup format is tranformed to a matrix
 If we take the eight-column table of the pileup file as an example (see previous section), the transformation matrix looks will look like like this:
 
 | ReadName | Position 980 | Position 1134 |
-|----|----|----|
+|----|:--:|:--:|
 | ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1 | C |  |
 | ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1 | T | A |
 | ReadName3 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1 |  | G |
 
 A matrix is not only more intuitive to understand but also serves to link the SNV positions as input. Make sure that the pileup file is in the correct format. To do this, look at the previous section and the workflow with all the parameters. If the file is formatted correctly, there are two ways to convert the information into a matrix:
 
--   [Nutze den R Code, der diesem Kapitel beiliegt.](chapter_2_nanopore_reads.Rmd)
+-   [Use the R code provided with this chapter.](chapter_2_nanopore_reads.Rmd)
 
--   [Verwendete das Tools pileupReformater.](https://github.com/wennj/pileupReformater)
+-   [Use the pileupReformater tool.](https://github.com/wennj/pileupReformater)
 
 The matrix shows which nucleotide is covered by which read. Since the Nanopore reads are long reads, multiple SNV positions can be linked. When we have a closer look at the second read (ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1) we see that it covers both positions 980 and 1134 and thus links the nucleotides ‘T’ and ‘A’.
 
 ## Basic SNV statistics
+
+\<tbd\>
