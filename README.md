@@ -48,7 +48,7 @@ Here are the NCBI sequence read archive (SRA) data sets that are used in this wo
 Für die SNV Bestimmungen wird eine Referenz benötigt. Diese muss nah mit den sequenzierten Isolaten verwandt sein. Da es sich bei den Proben um Isolate des BmNPV handelt, die aus Indien stammen, eignet sich die Genomsequenz des BmNPV-India:
 
 | Name | GenBank Accession no. | Length (bp) | GC (%) | Pubmed ID |
-|:--:|:--:|:--:|:--:|:--:|
+|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
 | BmNPV-India | [JQ991010](https://www.ncbi.nlm.nih.gov/nuccore/JQ991010.1) | 126879 | 40.4 | [23043173](https://pubmed.ncbi.nlm.nih.gov/23043173/) |
 
 ## Detailed R code of the workflow
@@ -190,7 +190,7 @@ The columns with the reference and read nucleotide as well as the read name are 
 Here is an example of the first two SNV positions of the pileup file of the Nanopore data set SRR26992682:
 
 | Reference | Position | Reference Nucleotide | Read Count | Read Nucleotide | Quality | \<tbd\> | Read Name\* |
-|----|----|----|----|----|----|----|----|
+|---------|---------|---------|---------|---------|---------|---------|---------|
 | BmNPV_India | 980 | C | 492 | .T... | ;\<\<;9 | 976,974,966,975,970 | ReadName1, ReadName2 |
 | BmNPV_India | 1134 | A | 508 | .G... | 5+A5; | 1127,1128,1119,1116,1126 | ReadName2, ReadName3 |
 
@@ -207,7 +207,7 @@ In this section, it is explained how the Pileup format is tranformed to a matrix
 If we take the eight-column table of the pileup file as an example (see previous section), the transformation matrix looks will look like like this:
 
 | ReadName | Position 980 | Position 1134 |
-|----|:--:|:--:|
+|------------------------|:----------------------:|:----------------------:|
 | ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1 | C |  |
 | ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1 | T | A |
 | ReadName3 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1 |  | G |
@@ -223,3 +223,5 @@ The matrix shows which nucleotide is covered by which read. Since the Nanopore r
 ## Basic SNV statistics
 
 \<tbd\>
+
+![](figures/ecdf.png)
