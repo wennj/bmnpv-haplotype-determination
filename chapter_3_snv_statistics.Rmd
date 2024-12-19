@@ -1,0 +1,195 @@
+---
+title: "Part 3 - SNV statistics"
+author: "Jörg Wennmann"
+date: "2024-12-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Required libraries
+
+```{r}
+library(ggplot2)
+library(patchwork)
+```
+
+## Input SNV matrix
+
+```{r}
+read_snp_matrices <- function(folder_path) {
+  file_paths <- list.files(folder_path, pattern = "\\.txt$", full.names = TRUE)
+  snp_matrices <- list()
+
+  for (file_path in file_paths) {
+    file_name <- sub("\\.txt$", "", basename(file_path))
+    snp_matrix <- read.table(file_path, 
+                         header = TRUE,        # Spaltennamen vorhanden
+                         sep = "\t",           # Tabulator-getrennt
+                         stringsAsFactors = FALSE, 
+                         check.names = FALSE)
+    snp_matrix[snp_matrix == "X"] <- ""
+    # Convert to matrix to retain the original format
+    snp_matrices[[file_name]] <- as.matrix(snp_matrix)
+  }
+
+  return(snp_matrices)
+}
+
+folder_path <- "snp_matrix/"
+snp_matrices <- read_snp_matrices(folder_path)
+snp_matrices[[1]][1:5, 1:20]
+```
+
+
+## Position Weight Matrix 
+
+```{r}
+getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
+	t(apply(seqs, 2, function(nuc) {
+		idx=which(nuc!="")
+		t=table(nuc[idx])
+		d=t[sym]
+		d[which(is.na(d))] = 0
+		names(d)=sym;
+		return(d/sum(t))
+	} ))
+}
+
+pwm_list <- list()
+
+pwm_list <- list()
+for (i in seq_along(snp_matrices)) {
+  seqs <- snp_matrices[[i]]
+  
+  pwm <- getPWM(seqs)
+  pwm_list[[names(snp_matrices)[i]]] <- pwm
+}
+
+pwm_list[["snp_matrix_SRR26992684"]][1:15,]
+```
+### PWM frequency sorted
+
+```{r}
+# Schritt 2: PWMs sortieren und in separater Liste speichern
+pwm_list_sorted <- list()
+for (i in seq_along(pwm_list)) {
+  pwm <- pwm_list[[i]]
+  pwm_sorted <- t(apply(pwm, 1, sort, decreasing = TRUE))
+  pwm_list_sorted[[names(pwm_list)[i]]] <- pwm_sorted
+}
+
+head(pwm_list_sorted[["snp_matrix_SRR26992682"]])
+head(pwm_list_sorted[["snp_matrix_SRR26992684"]])
+```
+
+## Empirical cumulative distribution function (ECDF)
+
+```{r}
+ecdf_plot <- function(pwm){
+  
+  p <- ggplot() + 
+    geom_vline(xintercept = 0, linetype='dashed', color='grey') +
+    geom_vline(xintercept = 1, linetype='dashed', color='grey') +
+    geom_hline(yintercept = 0, linetype='dashed', color='grey') +
+    geom_hline(yintercept = 1, linetype='dashed', color='grey') +
+    stat_ecdf(aes(pwm[,4]), col="blue") +
+    stat_ecdf(aes(pwm[,3]), col="green") +
+    stat_ecdf(aes(pwm[,2]), col="red") +
+    stat_ecdf(aes(pwm[,1]), col="black") +
+    theme(
+      axis.text.x = element_text(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.line = element_line(colour = "black"),
+      panel.background = element_rect(fill = "white"),
+      panel.border = element_rect(colour = "black", fill= NA, linewidth = 1),
+      legend.position = "none"
+    ) +
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank()
+    ) +
+    xlab("Relative nucleotide frequency") +
+    ylab("% of SNV positions")
+  
+  return(p)
+}
+
+
+p1 <- ecdf_plot(pwm_list_sorted[["snp_matrix_SRR26992684"]])
+p2 <- ecdf_plot(pwm_list_sorted[["snp_matrix_SRR26992682"]])
+
+## combined plot with patchwork
+combined_plot <- (p1 | p2) +
+  plot_annotation(title = '') +
+  plot_annotation(tag_levels = 'A')
+
+print(combined_plot)
+
+f <- 1
+
+w <- 7
+h <- 3.5
+
+ggsave("figures/ecdf.png", plot = combined_plot, width = w * f, height = h * f)
+```
+
+## --------
+
+## Filter reads by covered SNP positions
+
+A read should have at least 10 SNP positions.
+
+```{r}
+# Funktion zum Zählen leerer Felder
+fun_empty <- function(x) {
+  sum(x == "" | is.na(x))  # Berücksichtigt leere Werte und NA
+}
+
+# Funktion zum Zählen von Nicht-Leerwerten
+fun_not_empty <- function(x) {
+  sum(x != "" & !is.na(x))  # Zählt alle Werte, die nicht leer oder NA sind
+}
+
+# Anwenden der Funktionen auf die Zeilen der Matrix
+empty <- apply(adjusted_matrix, 1, fun_empty)
+notEmpty <- apply(adjusted_matrix, 1, fun_not_empty)
+#Reads with more than 10 SNPs
+positionsCovered <- notEmpty-empty
+seqsFiltered1 <- adjusted_matrix[which(positionsCovered >= 10), ]
+```
+
+
+
+## Filter by second allel frequency
+
+```{r}
+getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
+	t(apply(seqs,2,function(nuc) {
+		idx=which(nuc!="")
+		t=table(nuc[idx])
+		d=t[sym]
+		d[which(is.na(d))]= 0
+		names(d)=sym;
+		return(d/sum(t))
+	} ))
+}
+
+pwm <- getPWM(seqsFiltered1)
+
+pwm <- t(apply(pwm, 1, sort, decreasing = TRUE))
+
+seqsFiltered2 <- seqsFiltered1[, which(pwm[, 2] >= 0.1)]
+
+head(pwm)
+```
+
+
+
+
+
+
+

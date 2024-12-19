@@ -171,8 +171,10 @@ process_and_save_snp_matrices <- function(file_paths) {
     snp_matrix <- process_vcf_to_snp_matrix(file_path)
     
     # Matrix speichern
-    write.table(snp_matrix, file = output_file, 
-                sep = " ", col.names = TRUE, row.names = TRUE, quote = FALSE)
+    save_matrix <- snp_matrix
+    save_matrix[save_matrix == ""] <- "X"
+    write.table(save_matrix, file = output_file, 
+                sep = "\t", col.names = TRUE, row.names = TRUE, quote = FALSE)
     
     # Matrix in die Liste speichern
     snp_matrices[[file_name]] <- snp_matrix
@@ -184,6 +186,8 @@ process_and_save_snp_matrices <- function(file_paths) {
 # Aufruf der Funktion für mehrere Dateien
 file_paths <- c("pileup/SRR26992682.pileup", "pileup/SRR26992684.pileup")
 snp_matrices <- process_and_save_snp_matrices(file_paths)
+
+snp_matrices[[1]][1:5, 1:20]
 ```
 
 
