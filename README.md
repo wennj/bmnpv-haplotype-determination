@@ -239,7 +239,7 @@ The following analysis is based on a position weight matrix (PWM). This involves
 For the next steps of the analysis shown here, it is not of interest which nucleotide occurs. We rather want to answer the question formulated above, namely how likely it is that, for example, a second or third nucleotide occurs in each position. To do this, the PWM is sorted rowwise:
 
 | Position | 1st Alternative | 2n Alternative | 3rd Alternative | 4th Alternative | 5th Alternative |
-|----|----|----|----|----|----|
+|------------|------------|------------|------------|------------|------------|
 | 980 | 0.98979 | 0.01020 | 0 | 0 | 0 |
 | 1134 | 0.96261 | 0.02803 | 0.00934 | 0 | 0 |
 | 1222 | 0.97959 | 0.02040 | 0 | 0 | 0 |
@@ -250,4 +250,4 @@ Now, the distribution of the alternative nucleotides can be visualized by plotti
 
 ![](figures/ecdf.png)
 
-The figure shows that for BmNPV-My (A) almost only one nucleotide per SNV position occurs. In BmNPV-Ja (B), up to two nucleotides per position occur. A third and a fourth nucleotide are extremely rare. In addition, the nucleotide frequency indicates that BmNPV-Yes suggests a 50:50 mixture.
+The figure shows that for BmNPV-My (A) almost only one nucleotide per SNV position occurs. In BmNPV-Ja (B), up to two nucleotides per position occur. A third and a fourth nucleotide are extremely rare.
