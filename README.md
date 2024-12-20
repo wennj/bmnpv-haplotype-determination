@@ -191,8 +191,8 @@ Here is an example of the first two SNV positions of the pileup file of the Nano
 
 | Reference | Position | Reference Nucleotide | Read Count | Read Nucleotide | Quality | \<tbd\> | Read Name\* |
 |---------|---------|---------|---------|---------|---------|---------|---------|
-| BmNPV_India | 980 | C | 492 | .T... | ;\<\<;9 | 976,974,966,975,970 | ReadName1, ReadName2 |
-| BmNPV_India | 1134 | A | 508 | .G... | 5+A5; | 1127,1128,1119,1116,1126 | ReadName2, ReadName3 |
+| BmNPV_India | 980 | C | 492 | .T... | ;\<\<;9 | \<tbd\> | ReadName1, ReadName2 |
+| BmNPV_India | 1134 | A | 508 | .G... | 5+A5; | \<tbd\> | ReadName2, ReadName3 |
 
 \*ReadName1 = SRR26992682.ca6e52cb-83d4-4efd-b703-7f2c4ae062c3/1
 
@@ -222,6 +222,32 @@ The matrix shows which nucleotide is covered by which read. Since the Nanopore r
 
 ## Basic SNV statistics
 
-\<tbd\>
+Let us have look at the results and evaluate the detected SNV positions and the frequencies of the detected nucleotides. As we can see from the SNV matrix, the nucleotides that occur in each position are noted in the individual SNV positions. In addition, the reads are taken into account. It is important to understand that, in theory, four possible nucleotides can occur in each position: A, T, G and C. There is also a fifth option ‘-’, which stands for a deletion. However, we will only deal with the four nucleotides for now because the first question we want to answer from the data is:
+
+*What is the probability of a nucleotide occurring in a position?*
+
+The following analysis is based on a position weight matrix (PWM). This involves the calculation of the relative frequency of A, T, G, C and ‘-’ (= all five alternatives) in all SNV positions:
+
+| Position | A       | C       | G       | T       | \-      |
+|----------|---------|---------|---------|---------|---------|
+| 980      | 0       | 0.98979 | 0       | 0.01020 | 0       |
+| 1134     | 0.96261 | 0       | 0.02803 | 0.00934 | 0       |
+| 1222     | 0       | 0.97959 | 0.02040 | 0       | 0       |
+| 1344     | 0       | 0.99038 | 0       | 0       | 0.00961 |
+| 1353     | 0       | 0.99000 | 0       | 0.01000 | 0       |
+
+For the next steps of the analysis shown here, it is not of interest which nucleotide occurs. We rather want to answer the question formulated above, namely how likely it is that, for example, a second or third nucleotide occurs in each position. To do this, the PWM is sorted rowwise:
+
+| Position | 1st Alternative | 2n Alternative | 3rd Alternative | 4th Alternative | 5th Alternative |
+|----|----|----|----|----|----|
+| 980 | 0.98979 | 0.01020 | 0 | 0 | 0 |
+| 1134 | 0.96261 | 0.02803 | 0.00934 | 0 | 0 |
+| 1222 | 0.97959 | 0.02040 | 0 | 0 | 0 |
+| 1344 | 0.99038 | 0.00961 | 0 | 0 | 0 |
+| 1353 | 0.99000 | 0.01000 | 0 | 0 | 0 |
+
+Now, the distribution of the alternative nucleotides can be visualized by plotting each column of the sorted PWM as a graph. The result is an empirical cumulative distribution function (ECDF) (see figure below). The ECDF was created for the isolates (A) BmNPV-My and (B) BmNPV-Ja and shows four curves: black, red, green and blue for the first, second, third and fourth alternative nucleotide, respectively.
 
 ![](figures/ecdf.png)
+
+The figure shows that for BmNPV-My (A) almost only one nucleotide per SNV position occurs. In BmNPV-Ja (B), up to two nucleotides per position occur. A third and a fourth nucleotide are extremely rare. In addition, the nucleotide frequency indicates that BmNPV-Yes suggests a 50:50 mixture.
