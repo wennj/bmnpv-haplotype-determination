@@ -59,9 +59,13 @@ The R code is linked in the individual chapters. Here is an overview:
 
 Chapter 1: [Determination of variable single nucleotides variants (SNV) using Illumina sequencing data](chapter_1_snv_position_determination.Rmd)
 
-Chapter 2: [Transfer of SNV positions to Nanopore reads](chapter_1_snv_position_determination.Rmd)
+Chapter 2: Transfer of SNV positions to Nanopore reads
 
-Chapter 3: \<tbd\>
+-   [Transfer of SNV positions to Nanopore reads](chapter_2-1_nanopore-reads.Rmd)
+
+-   [Basic SNV statistics using a Position Weight Matrix](chapter_2-2_snv_statistics.Rmd)
+
+Chapter 3: [Determining haplotypes using a trained mixture model](chapter_3_trained_mixture_model.Rmd)
 
 Chapter 4 \<tbd\>
 
@@ -214,19 +218,51 @@ If we take the eight-column table of the pileup file as an example (see previous
 
 A matrix is not only more intuitive to understand but also serves to link the SNV positions as input. Make sure that the pileup file is in the correct format. To do this, look at the previous section and the workflow with all the parameters. If the file is formatted correctly, there are two ways to convert the information into a matrix:
 
--   [Use the R code provided with this chapter.](chapter_2_nanopore_reads.Rmd)
+-   [Use the R code provided with this chapter.](chapter_2-1_nanopore_reads.Rmd)
 
 -   [Use the pileupReformater tool.](https://github.com/wennj/pileupReformater)
 
 The matrix shows which nucleotide is covered by which read. Since the Nanopore reads are long reads, multiple SNV positions can be linked. When we have a closer look at the second read (ReadName2 = SRR26992682.4a32f9e7-9bd6-4566-b8f9-dbe2eb488291/1) we see that it covers both positions 980 and 1134 and thus links the nucleotides ‘T’ and ‘A’.
 
-## Basic SNV statistics
+## Basic SNV statistics using a Position Weight Matrix
+
+[The R code for the following section can be found here.](chapter_2-2_snv_statistics.Rmd)
 
 Let us have look at the results and evaluate the detected SNV positions and the frequencies of the detected nucleotides. As we can see from the SNV matrix, the nucleotides that occur in each position are noted in the individual SNV positions. In addition, the reads are taken into account. It is important to understand that, in theory, four possible nucleotides can occur in each position: A, T, G and C. There is also a fifth option ‘-’, which stands for a deletion. However, we will only deal with the four nucleotides for now because the first question we want to answer from the data is:
 
 *What is the probability of a nucleotide occurring in a position?*
 
-The following analysis is based on a position weight matrix (PWM). This involves the calculation of the relative frequency of A, T, G, C and ‘-’ (= all five alternatives) in all SNV positions:
+Before try to answer this question, I recommend reducing the dataset to reduce the complexity of the matrix. Although Nanopore reads are relatively long compared to reads from other sequencing techniques, not all reads cover a large number of SNV positions. Since we want to link SNV positions later in this script, only reads that cover many SNV positions are helpful. For this reason, the SNV matrix is filtered to retain only reads that cover at least 10 SNV positions. The number is chosen based on experience with the data set, but could also be selected more higher (\> 10). The filtering step is recommended and can be easily implemented in R:
+
+``` r
+# m represents a SNV matrix.
+
+# numberPositions is a numeric variable 
+# to define the number of minimal SNV positions
+# covered by a read.
+
+filter_by_no_SNV_positions <- function(m, numberPositions){
+  
+  funEmpty <- function(x){
+    sum(x == "")
+  }
+  
+  funNoPositions <- function(x){
+    sum(table(x))
+  }
+  
+  empty <- apply(m, 1, funEmpty)
+  totalPositions <- apply(m, 1, funNoPositions)
+  
+  positionsCovered <- totalPositions-empty
+  
+  m_filtered <- m[which(positionsCovered >= numberPositions), ]
+  
+  return(m_filtered)
+}
+```
+
+After the filtering step, the analysis an continue using a position weight matrix (PWM). This involves the calculation of the relative frequency of A, T, G, C and ‘-’ (= all five alternatives) in all SNV positions:
 
 | Position | A       | C       | G       | T       | \-      |
 |----------|---------|---------|---------|---------|---------|
@@ -251,3 +287,49 @@ Now, the distribution of the alternative nucleotides can be visualized by plotti
 ![](figures/ecdf.png)
 
 The figure shows that for BmNPV-My (A) almost only one nucleotide per SNV position occurs. In BmNPV-Ja (B), up to two nucleotides per position occur. A third and a fourth nucleotide are extremely rare.
+
+Therefore, the next steps of the analysis can focus on the reference nucleotide and the alternative nucleotide that occurs. The second and third alternatives (= nucleotides) are not considered further because they do not contribute much.
+
+------------------------------------------------------------------------
+
+# Chapter 3: Determining haplotypes using a trained mixture model
+
+We have learned from the previous chapter, that we are dealing with mainly two nucleotides per SNV position. In addition, the data set was filtered to keep only reads that cover at least 10 SNV positions. However, another important step of filtering is still missing. If you look at the sorted PWM, the second column shows the frequency of the second alternative nucleotide. Let's have a look at four selected SNV positions of the sorted PWM of the sequencing data SRR26992682 of BmNPV-Ja:
+
+| Position | 1st Alternative | 2n Alternative | 3rd Alternative | 4th Alternative | 5th Alternative |
+|------------|------------|------------|------------|------------|------------|
+| 980 | 0.58225 | 0.41341 | 0.00216 | 0.00216 | 0 |
+| 1134 | 0.58125 | 0.41250 | 0.00416 | 0.00208 | 0 |
+| 1434 | 0.90732 | 0.08405 | 0.00431 | 0.00431 | 0 |
+| 1483 | 0.49462 | 0.49032 | 0.01290 | 0.00215 | 0 |
+
+Here we can see that the second nucleotide in position 1434 has a frequency of 0.84 (= 8.4%). If we want to be very stringent with the data, we can apply an additional filter for the second column and only keep rows (= positions) that have a second nucleotide with a frequency of \> 10%. This can also be implemented in R:
+
+``` r
+# pwm represents a sorted position weight matrix
+
+# allel = the column (alternative nucleotide) of the position weight matrix
+
+# f = frequency of the allel, e.g. f = 0.1 (10%)
+
+filter_by_allel_frequency <- function(pwm, allel, f){
+  
+  pwm_filtered <- pwm[which(pwm[, allel] >= f), ]
+  
+  return(pwm_filtered)
+}
+
+filteredPWM <- filter_by_allel_frequency(sortedPWM, 2, 0.1)
+```
+
+After this filtering step, position 1434 is removed:
+
+| Position | 1st Alternative | 2n Alternative | 3rd Alternative | 4th Alternative | 5th Alternative |
+|------------|------------|------------|------------|------------|------------|
+| 980 | 0.58225 | 0.41341 | 0.00216 | 0.00216 | 0 |
+| 1134 | 0.58125 | 0.41250 | 0.00416 | 0.00208 | 0 |
+| 1483 | 0.49462 | 0.49032 | 0.01290 | 0.00215 | 0 |
+
+## Trained mixture model
+
+\<tbd\>

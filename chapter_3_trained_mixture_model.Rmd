@@ -1,0 +1,52 @@
+---
+title: "Part 3 - trained mixture model"
+author: "Jörg Wennmann"
+date: "2024-12-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Required libraries
+
+```{r}
+library(ggplot2)
+library(patchwork)
+```
+
+## --------
+
+## Input PWM
+
+```{r}
+#loading pwm_list_sorted (= list)
+load("pwm/pwm_list_sorted.RData")
+
+is(pwm_list_sorted)
+names(pwm_list_sorted)
+```
+
+## Filter by second allel frequency
+
+```{r}
+filter_by_allel_frequency <- function(pwm, allel, f){
+  
+  pwm_filtered <- pwm[which(pwm[, allel] >= f), ]
+  
+  return(pwm_filtered)
+}
+
+pwm_list_sorted_filtered <- list()
+for(i in seq_along(pwm_list_sorted)){
+  cpwm <- pwm_list_sorted[[i]]
+  cpwm <- filter_by_allel_frequency(cpwm, 2, 0.1)
+  pwm_list_sorted_filtered[[names(pwm_list_sorted)[i]]] <- cpwm
+}
+
+dim(pwm_list_sorted[[1]])
+dim(pwm_list_sorted_filtered[[1]])
+```
+
+

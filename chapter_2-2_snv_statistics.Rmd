@@ -1,5 +1,5 @@
 ---
-title: "Part 3 - SNV statistics"
+title: "Part 2.2 - SNV statistics"
 author: "Jörg Wennmann"
 date: "2024-12-17"
 output: html_document
@@ -16,7 +16,9 @@ library(ggplot2)
 library(patchwork)
 ```
 
-## Input SNV matrix
+#----------
+
+## Input SNV  (read txt)
 
 ```{r}
 read_snp_matrices <- function(folder_path) {
@@ -43,6 +45,53 @@ snp_matrices <- read_snp_matrices(folder_path)
 snp_matrices[[1]][1:5, 1:20]
 ```
 
+## Input SNV  (read Rdata)
+
+```{r}
+#Or read as Rdata (= list)
+load("snp_matrix/snp_matrices.RData")
+names(snp_matrices) <- c("snp_matrix_SRR26992682", "snp_matrix_SRR26992684")
+```
+
+#----------
+
+## Filter by minimal number covered SNP positions
+
+```{r}
+filter_by_no_SNV_positions <- function(m, numberPositions){
+  
+  funEmpty <- function(x){
+    sum(x == "")
+  }
+  
+  funNoPositions <- function(x){
+    sum(table(x))
+  }
+  
+  empty <- apply(m, 1, funEmpty)
+  totalPositions <- apply(m, 1, funNoPositions)
+  
+  positionsCovered <- totalPositions-empty
+  
+  m_filtered <- m[which(positionsCovered >= numberPositions), ]
+  
+  return(m_filtered)
+}
+
+snp_matrices_filtered <- list()
+for(i in seq_along(snp_matrices)){
+  mat <- snp_matrices[[i]]
+  mat <- filter_by_no_SNV_positions(mat, 10)
+  snp_matrices_filtered[[names(snp_matrices)[i]]] <- mat
+}
+
+snp_matrices <- snp_matrices_filtered
+
+save(snp_matrices_filtered, file = "snp_matrix/snp_matrices_filtered.RData")
+```
+
+
+#----------
 
 ## Position Weight Matrix 
 
@@ -61,11 +110,11 @@ getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
 pwm_list <- list()
 
 pwm_list <- list()
-for (i in seq_along(snp_matrices)) {
-  seqs <- snp_matrices[[i]]
+for (i in seq_along(snp_matrices_filtered)) {
+  seqs <- snp_matrices_filtered[[i]]
   
   pwm <- getPWM(seqs)
-  pwm_list[[names(snp_matrices)[i]]] <- pwm
+  pwm_list[[names(snp_matrices_filtered)[i]]] <- pwm
 }
 
 pwm_list[["snp_matrix_SRR26992684"]][1:15,]
@@ -137,59 +186,15 @@ h <- 3.5
 ggsave("figures/ecdf.png", plot = combined_plot, width = w * f, height = h * f)
 ```
 
-## --------
+# Save PWM matrices
 
-## Filter reads by covered SNP positions
-
-A read should have at least 10 SNP positions.
+The PWM are saved as CVS files and one .Rdata file for easier import.
 
 ```{r}
-# Funktion zum Zählen leerer Felder
-fun_empty <- function(x) {
-  sum(x == "" | is.na(x))  # Berücksichtigt leere Werte und NA
-}
+write.csv(pwm_list_sorted[[1]], file = "pwm/pwm_matrix_sorted_SRR26992682.csv", row.names = TRUE)
 
-# Funktion zum Zählen von Nicht-Leerwerten
-fun_not_empty <- function(x) {
-  sum(x != "" & !is.na(x))  # Zählt alle Werte, die nicht leer oder NA sind
-}
+write.csv(pwm_list_sorted[[2]], file = "pwm/pwm_matrix_sorted_SRR26992684.csv", row.names = TRUE)
 
-# Anwenden der Funktionen auf die Zeilen der Matrix
-empty <- apply(adjusted_matrix, 1, fun_empty)
-notEmpty <- apply(adjusted_matrix, 1, fun_not_empty)
-#Reads with more than 10 SNPs
-positionsCovered <- notEmpty-empty
-seqsFiltered1 <- adjusted_matrix[which(positionsCovered >= 10), ]
+save(pwm_list_sorted, file = "pwm/pwm_list_sorted.RData")
 ```
-
-
-
-## Filter by second allel frequency
-
-```{r}
-getPWM = function( seqs, sym=c("A","C","G","T","-") ) {
-	t(apply(seqs,2,function(nuc) {
-		idx=which(nuc!="")
-		t=table(nuc[idx])
-		d=t[sym]
-		d[which(is.na(d))]= 0
-		names(d)=sym;
-		return(d/sum(t))
-	} ))
-}
-
-pwm <- getPWM(seqsFiltered1)
-
-pwm <- t(apply(pwm, 1, sort, decreasing = TRUE))
-
-seqsFiltered2 <- seqsFiltered1[, which(pwm[, 2] >= 0.1)]
-
-head(pwm)
-```
-
-
-
-
-
-
 
