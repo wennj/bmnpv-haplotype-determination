@@ -20,7 +20,7 @@ This repository aims to demonstrate the workflow for determining the haplotypes 
 
 ## Prerequisites
 
-To apply the workflow described below, it is necessary that the [same]{.underline} DNA has been sequenced twice using Illumina (short read) and Nanopore (long read) sequencing.
+To apply the workflow described below, it is necessary that DNA from **the same DNA extraction** has been sequenced using bot Illumina (short read) and Nanopore (long read) sequencing technologies.
 
 ## Further reading
 
@@ -45,7 +45,7 @@ Here are the NCBI sequence read archive (SRA) data sets that are used in this wo
 | BmNPV-My | SAMN18849911 |     SRR14313723     |     SRR26992684     |
 | BmNPV-Ja | SAMN18849913 |     SRR14313721     |     SRR26992682     |
 
-Für die SNV Bestimmungen wird eine Referenz benötigt. Diese muss nah mit den sequenzierten Isolaten verwandt sein. Da es sich bei den Proben um Isolate des BmNPV handelt, die aus Indien stammen, eignet sich die Genomsequenz des BmNPV-India:
+A reference is required for SNV determination. This must be closely related to the sequenced isolates. Since the samples are isolates of BmNPV originating from India, the genome sequence of BmNPV-India is used:
 
 | Name | GenBank Accession no. | Length (bp) | GC (%) | Pubmed ID |
 |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
